@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Explorer</title>
+    <meta name="description" content="A premium, interactive web explorer for the latest BigQuery release notes and updates.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="glow-bg"></div>
+    
+    <header class="app-header">
+        <div class="container header-container">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-database"></i>
+                    <div class="logo-accent"></div>
+                </div>
+                <div>
+                    <h1>BigQuery</h1>
+                    <p class="subtitle">Release Notes Explorer</p>
+                </div>
+            </div>
+            
+            <div class="search-filter-bar">
+                <div class="search-wrapper">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search updates (e.g. Gemini, external tables)..." autocomplete="off">
+                    <button id="clear-search" class="clear-btn" style="display: none;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button id="refresh-btn" class="action-btn" title="Refresh feed">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container main-content">
+        <!-- Sidebar controls -->
+        <aside class="sidebar">
+            <div class="glass-card sticky-sidebar">
+                <h3>Filters</h3>
+                <div class="filter-section">
+                    <h4>Categories</h4>
+                    <div class="category-filters" id="category-filters">
+                        <button class="filter-chip active" data-category="all">
+                            <span class="chip-dot all"></span> All Notes
+                        </button>
+                        <button class="filter-chip" data-category="feature">
+                            <span class="chip-dot feature"></span> Features
+                        </button>
+                        <button class="filter-chip" data-category="announcement">
+                            <span class="chip-dot announcement"></span> Announcements
+                        </button>
+                        <button class="filter-chip" data-category="issue">
+                            <span class="chip-dot issue"></span> Issues
+                        </button>
+                        <button class="filter-chip" data-category="deprecation">
+                            <span class="chip-dot deprecation"></span> Deprecations
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-section">
+                    <h4>Feed Info</h4>
+                    <div class="stat-row">
+                        <span class="stat-label">Total updates:</span>
+                        <span class="stat-value" id="stat-total">-</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Source:</span>
+                        <a href="https://docs.cloud.google.com/feeds/bigquery-release-notes.xml" target="_blank" class="source-link">
+                            Google Cloud Feed <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Feed Area -->
+        <section class="feed-area">
+            <!-- Skeleton Loader -->
+            <div id="skeleton-loader" class="skeleton-container">
+                <div class="glass-card skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text short"></div>
+                </div>
+                <div class="glass-card skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text"></div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <div class="empty-icon">
+                    <i class="fa-solid fa-magnifying-glass-minus"></i>
+                </div>
+                <h3>No Release Notes Found</h3>
+                <p>Try adjusting your search terms or filters.</p>
+                <button id="reset-filters-btn" class="accent-btn">Reset All Filters</button>
+            </div>
+
+            <!-- Actual Feed Content -->
+            <div id="feed-container" class="feed-container"></div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container">
+            <p>&copy; 2026 BigQuery Release Notes Explorer &bull; Powered by Flask &amp; Google Cloud</p>
+        </div>
+    </footer>
+
+    <!-- JS Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let releaseNotesData = [];
+            let currentFilter = 'all';
+            let searchQuery = '';
+
+            const feedContainer = document.getElementById('feed-container');
+            const skeletonLoader = document.getElementById('skeleton-loader');
+            const emptyState = document.getElementById('empty-state');
+            const searchInput = document.getElementById('search-input');
+            const clearSearchBtn = document.getElementById('clear-search');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const resetFiltersBtn = document.getElementById('reset-filters-btn');
+            const categoryChips = document.querySelectorAll('.filter-chip');
+            const statTotal = document.getElementById('stat-total');
+
+            // Fetch data from Flask API
+            async function fetchReleaseNotes() {
+                const icon = refreshBtn.querySelector('i');
+                try {
+                    showLoader();
+                    icon.classList.add('spinning');
+                    const response = await fetch('/api/release-notes');
+                    const json = await response.json();
+                    if (json.status === 'success') {
+                        releaseNotesData = json.data;
+                        renderFeed();
+                    } else {
+                        showError("Failed to parse release notes from the feed API.");
+                    }
+                } catch (error) {
+                    console.error("Error fetching release notes:", error);
+                    showError("Error connecting to the backend service.");
+                } finally {
+                    icon.classList.remove('spinning');
+                }
+            }
+
+            function showLoader() {
+                skeletonLoader.style.display = 'block';
+                feedContainer.style.display = 'none';
+                emptyState.style.display = 'none';
+            }
+
+            function showError(msg) {
+                skeletonLoader.style.display = 'none';
+                feedContainer.style.display = 'none';
+                emptyState.style.display = 'flex';
+                emptyState.querySelector('h3').textContent = "Something went wrong";
+                emptyState.querySelector('p').textContent = msg;
+            }
+
+            // Category classification function
+            function getCategoryClass(category) {
+                const cat = category.toLowerCase();
+                if (cat.includes('feature')) return 'feature';
+                if (cat.includes('announcement')) return 'announcement';
+                if (cat.includes('issue') || cat.includes('bug') || cat.includes('fix')) return 'issue';
+                if (cat.includes('deprecation')) return 'deprecation';
+                return 'general';
+            }
+
+            // Render logic
+            function renderFeed() {
+                skeletonLoader.style.display = 'none';
+                feedContainer.innerHTML = '';
+                
+                let totalFilteredCount = 0;
+
+                // Process and filter data
+                releaseNotesData.forEach(entry => {
+                    const filteredItems = entry.items.filter(item => {
+                        const matchesCategory = currentFilter === 'all' || 
+                            getCategoryClass(item.category) === currentFilter;
+                        
+                        const matchesSearch = searchQuery === '' || 
+                            item.category.toLowerCase().includes(searchQuery) ||
+                            item.body.toLowerCase().includes(searchQuery) ||
+                            entry.date.toLowerCase().includes(searchQuery);
+
+                        return matchesCategory && matchesSearch;
+                    });
+
+                    if (filteredItems.length > 0) {
+                        totalFilteredCount += filteredItems.length;
+
+                        // Create entry card container
+                        const card = document.createElement('div');
+                        card.className = 'glass-card feed-card fade-in';
+                        
+                        // Header info
+                        const header = document.createElement('div');
+                        header.className = 'card-header';
+                        
+                        const dateTitle = document.createElement('h2');
+                        dateTitle.className = 'entry-date';
+                        dateTitle.textContent = entry.date;
+                        
+                        const extLink = document.createElement('a');
+                        extLink.href = entry.link || '#';
+                        extLink.target = '_blank';
+                        extLink.className = 'entry-link';
+                        extLink.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square"></i>';
+                        extLink.title = "View on official documentation";
+
+                        header.appendChild(dateTitle);
+                        if (entry.link) {
+                            header.appendChild(extLink);
+                        }
+                        card.appendChild(header);
+
+                        // Body info (each items parsed)
+                        const itemsContainer = document.createElement('div');
+                        itemsContainer.className = 'card-items';
+
+                        filteredItems.forEach(item => {
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className = 'release-item';
+
+                            const badge = document.createElement('span');
+                            const catClass = getCategoryClass(item.category);
+                            badge.className = `category-badge ${catClass}`;
+                            badge.textContent = item.category;
+
+                            const content = document.createElement('div');
+                            content.className = 'item-content';
+                            content.innerHTML = item.body;
+
+                            // Modify standard anchor links in the feed to open in new tab
+                            content.querySelectorAll('a').forEach(a => {
+                                a.target = '_blank';
+                                a.rel = 'noopener noreferrer';
+                            });
+
+                            // Action buttons container for tweet
+                            const actionsDiv = document.createElement('div');
+                            actionsDiv.className = 'item-actions';
+                            
+                            const tweetBtn = document.createElement('button');
+                            tweetBtn.className = 'tweet-btn';
+                            tweetBtn.innerHTML = '<i class="fa-brands fa-x-twitter"></i> Tweet Update';
+                            tweetBtn.addEventListener('click', () => {
+                                // Extract plain text from HTML content
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = item.body;
+                                const plainText = tempDiv.textContent || tempDiv.innerText || "";
+                                
+                                // Format text to be friendly with 280-char limit
+                                const headerText = `BigQuery [${item.category}] (${entry.date}): `;
+                                const suffixText = ` #BigQuery #GoogleCloud`;
+                                // 280 - headerText.length - suffixText.length - 24 (X link overhead)
+                                const maxBodyLen = 280 - headerText.length - suffixText.length - 24;
+                                let bodyText = plainText.trim().replace(/\s+/g, ' ');
+                                if (bodyText.length > maxBodyLen) {
+                                    bodyText = bodyText.substring(0, maxBodyLen - 3) + "...";
+                                }
+                                
+                                const tweetText = `${headerText}${bodyText}${suffixText}`;
+                                const shareUrl = entry.link || "https://cloud.google.com/bigquery/docs/release-notes";
+                                const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(shareUrl)}`;
+                                window.open(twitterUrl, '_blank');
+                            });
+                            
+                            actionsDiv.appendChild(tweetBtn);
+
+                            itemDiv.appendChild(badge);
+                            itemDiv.appendChild(content);
+                            itemDiv.appendChild(actionsDiv);
+                            itemsContainer.appendChild(itemDiv);
+                        });
+
+                        card.appendChild(itemsContainer);
+                        feedContainer.appendChild(card);
+                    }
+                });
+
+                // Update Stats
+                statTotal.textContent = totalFilteredCount;
+
+                // Handle Empty View
+                if (totalFilteredCount === 0) {
+                    feedContainer.style.display = 'none';
+                    emptyState.style.display = 'flex';
+                } else {
+                    feedContainer.style.display = 'grid';
+                    emptyState.style.display = 'none';
+                }
+            }
+
+            // Filter Chip Listeners
+            categoryChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    categoryChips.forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    currentFilter = chip.getAttribute('data-category');
+                    renderFeed();
+                });
+            });
+
+            // Search input Listener
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase().trim();
+                if (searchQuery.length > 0) {
+                    clearSearchBtn.style.display = 'block';
+                } else {
+                    clearSearchBtn.style.display = 'none';
+                }
+                renderFeed();
+            });
+
+            clearSearchBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                searchQuery = '';
+                clearSearchBtn.style.display = 'none';
+                renderFeed();
+            });
+
+            // Refresh actions
+            refreshBtn.addEventListener('click', () => {
+                fetchReleaseNotes();
+            });
+
+            // Reset action
+            resetFiltersBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                searchQuery = '';
+                clearSearchBtn.style.display = 'none';
+                
+                categoryChips.forEach(c => c.classList.remove('active'));
+                document.querySelector('[data-category="all"]').classList.add('active');
+                currentFilter = 'all';
+
+                renderFeed();
+            });
+
+            // Init load
+            fetchReleaseNotes();
+        });
+    </script>
+</body>
+</html>
