@@ -127,6 +127,64 @@
         </div>
     </footer>
 
+    <!-- Twitter Composer Modal -->
+    <div id="composer-modal" class="modal-overlay" style="display: none;">
+        <div class="glass-card modal-card fade-in">
+            <div class="modal-header">
+                <h3><i class="fa-brands fa-x-twitter"></i> Tweet Composer & Preview</h3>
+                <button id="close-modal-btn" class="close-modal-btn" title="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="composer-section">
+                    <label for="tweet-textarea">Compose Tweet</label>
+                    <textarea id="tweet-textarea" rows="6" placeholder="What's happening?"></textarea>
+                    <div class="composer-meta">
+                        <span id="char-counter" class="char-counter">0 / 280</span>
+                    </div>
+                </div>
+                <div class="preview-section">
+                    <label>Live X Preview</label>
+                    <div class="tweet-preview-card">
+                        <div class="tweet-preview-header">
+                            <div class="tweet-avatar">
+                                <i class="fa-solid fa-database"></i>
+                            </div>
+                            <div class="tweet-user-info">
+                                <div class="tweet-user-name-row">
+                                    <span class="tweet-display-name">BigQuery Release Explorer</span>
+                                    <span class="tweet-handle">@BQReleaseNotes · Just now</span>
+                                </div>
+                            </div>
+                            <div class="tweet-x-logo">
+                                <i class="fa-brands fa-x-twitter"></i>
+                            </div>
+                        </div>
+                        <div class="tweet-preview-body" id="tweet-preview-text">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <div class="tweet-link-card">
+                            <div class="tweet-link-image">
+                                <div class="link-img-placeholder">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Google Cloud Release Notes</span>
+                                </div>
+                            </div>
+                            <div class="tweet-link-info">
+                                <span class="tweet-link-domain">cloud.google.com</span>
+                                <span class="tweet-link-title" id="tweet-preview-link-title">BigQuery Release Notes | Google Cloud</span>
+                                <span class="tweet-link-desc">Stay up to date with the latest features, improvements, and deprecations in Google BigQuery.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="copy-tweet-btn" class="secondary-btn"><i class="fa-regular fa-copy"></i> Copy Text</button>
+                <button id="submit-tweet-btn" class="accent-btn"><i class="fa-brands fa-x-twitter"></i> Post to X</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JS Logic -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -143,6 +201,17 @@
             const resetFiltersBtn = document.getElementById('reset-filters-btn');
             const categoryChips = document.querySelectorAll('.filter-chip');
             const statTotal = document.getElementById('stat-total');
+
+            // Modal elements
+            const composerModal = document.getElementById('composer-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const tweetTextarea = document.getElementById('tweet-textarea');
+            const charCounter = document.getElementById('char-counter');
+            const tweetPreviewText = document.getElementById('tweet-preview-text');
+            const tweetPreviewLinkTitle = document.getElementById('tweet-preview-link-title');
+            const copyTweetBtn = document.getElementById('copy-tweet-btn');
+            const submitTweetBtn = document.getElementById('submit-tweet-btn');
+            let currentShareUrl = '';
 
             // Fetch data from Flask API
             async function fetchReleaseNotes() {
@@ -189,6 +258,78 @@
                 if (cat.includes('deprecation')) return 'deprecation';
                 return 'general';
             }
+
+            // Modal helper logic
+            function updatePreview() {
+                const text = tweetTextarea.value;
+                const length = text.length;
+                charCounter.textContent = `${length} / 280`;
+                
+                if (length > 280) {
+                    charCounter.classList.add('exceeded');
+                    submitTweetBtn.disabled = true;
+                } else {
+                    charCounter.classList.remove('exceeded');
+                    submitTweetBtn.disabled = false;
+                }
+                
+                // Highlight hashtags dynamically in preview
+                let highlightedText = text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/(#[a-zA-Z0-9_]+)/g, '<span class="hashtag">$1</span>');
+                
+                tweetPreviewText.innerHTML = highlightedText || '<i>Empty tweet content...</i>';
+            }
+
+            function openComposerModal(initialText, shareUrl) {
+                currentShareUrl = shareUrl;
+                tweetTextarea.value = initialText;
+                composerModal.style.display = 'flex';
+                updatePreview();
+                tweetTextarea.focus();
+            }
+
+            // Close modal handlers
+            function closeComposerModal() {
+                composerModal.style.display = 'none';
+            }
+
+            closeModalBtn.addEventListener('click', closeComposerModal);
+            composerModal.addEventListener('click', (e) => {
+                if (e.target === composerModal) {
+                    closeComposerModal();
+                }
+            });
+
+            // Live edit updates preview
+            tweetTextarea.addEventListener('input', updatePreview);
+
+            // Copy to clipboard with animation
+            copyTweetBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(tweetTextarea.value);
+                    const originalHTML = copyTweetBtn.innerHTML;
+                    copyTweetBtn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                    copyTweetBtn.classList.add('copied');
+                    setTimeout(() => {
+                        copyTweetBtn.innerHTML = originalHTML;
+                        copyTweetBtn.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Failed to copy text: ', err);
+                }
+            });
+
+            // Submit tweet to Twitter Web Intent
+            submitTweetBtn.addEventListener('click', () => {
+                if (tweetTextarea.value.length > 280) return;
+                const tweetText = tweetTextarea.value;
+                const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(currentShareUrl)}`;
+                window.open(twitterUrl, '_blank');
+                closeComposerModal();
+            });
 
             // Render logic
             function renderFeed() {
@@ -287,8 +428,7 @@
                                 
                                 const tweetText = `${headerText}${bodyText}${suffixText}`;
                                 const shareUrl = entry.link || "https://cloud.google.com/bigquery/docs/release-notes";
-                                const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(shareUrl)}`;
-                                window.open(twitterUrl, '_blank');
+                                openComposerModal(tweetText, shareUrl);
                             });
                             
                             actionsDiv.appendChild(tweetBtn);

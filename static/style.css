@@ -648,3 +648,307 @@ aside h3 {
         max-width: 100%;
     }
 }
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(11, 15, 25, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Modal Card */
+.modal-card {
+    width: 100%;
+    max-width: 780px;
+    margin: 20px;
+    background: rgba(18, 24, 38, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px var(--clr-accent-glow);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-header h3 i {
+    color: #1d9bf0; /* Twitter blue */
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    transition: var(--transition-smooth);
+}
+
+.close-modal-btn:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.composer-section, .preview-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.composer-section label, .preview-section label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+#tweet-textarea {
+    width: 100%;
+    min-height: 160px;
+    background: rgba(11, 15, 25, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    resize: none;
+    line-height: 1.5;
+    transition: var(--transition-smooth);
+}
+
+#tweet-textarea:focus {
+    outline: none;
+    border-color: var(--clr-accent);
+    background: rgba(11, 15, 25, 0.9);
+}
+
+.composer-meta {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.char-counter {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.char-counter.exceeded {
+    color: var(--clr-issue);
+    font-weight: bold;
+}
+
+/* X Tweet Preview Card */
+.tweet-preview-card {
+    background: #000000; /* Pure black like dark-mode X */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 100%;
+}
+
+.tweet-preview-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tweet-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--clr-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.tweet-user-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tweet-user-name-row {
+    display: flex;
+    flex-direction: column;
+}
+
+.tweet-display-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: #e7e9ea;
+}
+
+.tweet-handle {
+    color: #71767b;
+    font-size: 13px;
+}
+
+.tweet-x-logo {
+    color: #71767b;
+    font-size: 16px;
+}
+
+.tweet-preview-body {
+    color: #e7e9ea;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+.tweet-preview-body .hashtag {
+    color: #1d9bf0;
+    cursor: pointer;
+}
+
+.tweet-preview-body .hashtag:hover {
+    text-decoration: underline;
+}
+
+/* Simulated Link Preview Card */
+.tweet-link-card {
+    border: 1px solid #2f3336;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: #000000;
+}
+
+.tweet-link-image {
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(135deg, rgba(29, 155, 240, 0.15) 0%, rgba(11, 15, 25, 0.8) 100%);
+    border-bottom: 1px solid #2f3336;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.link-img-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #71767b;
+    font-size: 11px;
+}
+
+.link-img-placeholder i {
+    font-size: 20px;
+    color: var(--clr-accent);
+}
+
+.tweet-link-info {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tweet-link-domain {
+    font-size: 12px;
+    color: #71767b;
+}
+
+.tweet-link-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: #e7e9ea;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tweet-link-desc {
+    font-size: 12px;
+    color: #71767b;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Modal Footer */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    background: rgba(11, 15, 25, 0.4);
+}
+
+.secondary-btn {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: var(--transition-smooth);
+}
+
+.secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--border-hover);
+}
+
+.secondary-btn.copied {
+    background: var(--clr-feature-bg);
+    color: var(--clr-feature);
+    border-color: var(--clr-feature);
+}
+
+/* Responsive modal changes */
+@media (max-width: 700px) {
+    .modal-body {
+        grid-template-columns: 1fr;
+    }
+}
